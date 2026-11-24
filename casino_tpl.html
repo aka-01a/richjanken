@@ -1,0 +1,393 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CASINO JANKEN</title>
+
+    <script src="js/jquery-2.1.3.min.js"></script>
+    <link rel="stylesheet" href="css/sample.css">
+</head>
+
+<body>
+
+<main>
+
+    <h1>CASINO JANKEN</h1>
+    <p class="subtitle">ROCK ・ PAPER ・ SCISSORS</p>
+
+    <!-- 所持コイン -->
+    <div class="coin-box">
+        所持コイン：<span id="coins">1000</span> 🪙
+    </div>
+
+    <!-- 連勝回数 -->
+    <div class="streak-box">
+        現在の連勝数：<span id="streak">0</span> 回
+    </div>
+
+    <!-- BET選択 -->
+    <div class="bet-box">
+        <p>SELECT YOUR BET</p>
+
+        <select id="bet">
+            <option value="100">100 COINS</option>
+            <option value="300">300 COINS</option>
+            <option value="500">500 COINS</option>
+        </select>
+    </div>
+
+    <!-- じゃんけんボタン -->
+    <ul>
+        <li id="gu_btn">✊ グー</li>
+        <li id="cho_btn">✌️ チョキ</li>
+        <li id="par_btn">✋ パー</li>
+    </ul>
+
+    <!-- コンピュータの手 -->
+    <div class="pc-box">
+        DEALER'S HAND：
+        <span id="pc_hands">なに？</span>
+    </div>
+
+    <!-- 勝敗表示 -->
+    <div id="judgment">READY?</div>
+
+    <!-- リセット -->
+    <button id="reset_btn">RESET GAME</button>
+
+</main>
+
+<script>
+
+// ====================================
+// ① 変数
+// ====================================
+
+let coins = 1000;
+let winStreak = 0;
+
+
+// ====================================
+// ② デザイン（jQuery）
+// ====================================
+
+// 背景
+$("body").css({
+    "background-color": "#0c0c0e",
+    "color": "#ffffff",
+    "text-align": "center",
+    "font-family": "Arial, sans-serif"
+});
+
+// タイトル
+$("h1").css({
+    "color": "#d4af37",
+    "font-size": "40px",
+    "letter-spacing": "4px",
+    "margin-top": "50px"
+});
+
+// サブタイトル
+$(".subtitle").css({
+    "color": "#aaaaaa",
+    "font-size": "12px",
+    "letter-spacing": "3px"
+});
+
+// コイン表示
+$(".coin-box").css({
+    "border": "1px solid #d4af37",
+    "border-radius": "12px",
+    "padding": "20px",
+    "margin": "30px auto",
+    "max-width": "350px",
+    "color": "#d4af37",
+    "font-size": "24px"
+});
+
+// 連勝表示
+$(".streak-box").css({
+    "color": "#d4af37",
+    "font-size": "18px",
+    "margin": "20px"
+});
+
+// BETエリア
+$(".bet-box").css({
+    "margin": "25px auto",
+    "color": "#d4af37"
+});
+
+$("#bet").css({
+    "background-color": "#1c1c1c",
+    "color": "#d4af37",
+    "border": "1px solid #d4af37",
+    "border-radius": "8px",
+    "padding": "12px 20px",
+    "font-size": "16px",
+    "cursor": "pointer"
+});
+
+// じゃんけんボタンの配置
+$("main ul").css({
+    "display": "flex",
+    "justify-content": "center",
+    "gap": "20px",
+    "padding": "0",
+    "list-style": "none",
+    "flex-wrap": "wrap"
+});
+
+// ボタンデザイン
+$("main li").css({
+    "background-color": "#1c1c1c",
+    "color": "#d4af37",
+    "border": "1px solid #d4af37",
+    "border-radius": "12px",
+    "padding": "25px",
+    "cursor": "pointer",
+    "transition": "0.3s"
+});
+
+// マウスを乗せたとき
+$("main li").hover(
+    function(){
+        $(this).css({
+            "background-color": "#d4af37",
+            "color": "#000000",
+            "transform": "scale(1.05)"
+        });
+    },
+    function(){
+        $(this).css({
+            "background-color": "#1c1c1c",
+            "color": "#d4af37",
+            "transform": "scale(1)"
+        });
+    }
+);
+
+// コンピュータの手
+$(".pc-box").css({
+    "margin": "30px",
+    "font-size": "20px"
+});
+
+// 勝敗表示
+$("#judgment").css({
+    "font-size": "40px",
+    "font-weight": "bold",
+    "color": "#d4af37",
+    "margin": "30px"
+});
+
+// RESETボタン
+$("#reset_btn").css({
+    "background-color": "#d4af37",
+    "color": "#000000",
+    "border": "none",
+    "border-radius": "8px",
+    "padding": "15px 30px",
+    "font-size": "16px",
+    "font-weight": "bold",
+    "cursor": "pointer",
+    "margin-top": "20px"
+});
+
+
+// ====================================
+// ③ 勝敗表示の関数
+// ====================================
+
+function showResult(result, color){
+
+    $("#judgment").stop(true, true).hide();
+
+    $("#judgment").html(result);
+
+    $("#judgment").css({
+        "color": color,
+        "text-shadow": result == "DRAW"
+            ? "none"
+            : "0 0 20px " + color
+    });
+
+    $("#judgment").fadeIn(500);
+}
+
+
+// ====================================
+// ④ コインアニメーション
+// ====================================
+
+function coinAnimation(){
+
+    $(".coin-box")
+        .stop(true, true)
+        .animate({opacity: 0.5}, 150)
+        .animate({opacity: 1}, 150);
+
+}
+
+
+// ====================================
+// ⑤ じゃんけん処理
+// ====================================
+
+function playJanken(myHand){
+
+    // BET額を取得
+    const bet = Number($("#bet").val());
+
+    // コイン不足チェック
+    if(coins < bet){
+        alert("コインが足りません！");
+        return;
+    }
+
+    // コンピュータの手をランダムに決定
+    const n = Math.floor(Math.random() * 3) + 1;
+
+    let pcHand = "";
+
+    if(n == 1){
+        pcHand = "グー";
+    }
+    if(n == 2){
+        pcHand = "チョキ";
+    }
+    if(n == 3){
+        pcHand = "パー";
+    }
+
+    $("#pc_hands").html(pcHand);
+
+
+    // ====================================
+    // 勝敗判定
+    // ====================================
+
+    // あいこ
+    if(myHand == pcHand){
+
+        showResult("DRAW", "#ffffff");
+
+        winStreak = 0;
+
+    }
+
+    // 勝ち
+    else if(
+        (myHand == "グー" && pcHand == "チョキ") ||
+        (myHand == "チョキ" && pcHand == "パー") ||
+        (myHand == "パー" && pcHand == "グー")
+    ){
+
+        showResult("WIN!", "#d4af37");
+
+        coins = coins + bet;
+        winStreak++;
+
+        // 3連勝ごとのボーナス
+        if(winStreak % 3 == 0){
+
+            coins = coins + 500;
+
+            alert("3連勝ボーナス！500コイン獲得！");
+        }
+
+        coinAnimation();
+
+    }
+
+    // 負け
+    else{
+
+        coins = coins - bet;
+        winStreak = 0;
+
+        if(coins == 0){
+
+            showResult("GAME OVER", "#ff4d4d");
+
+        }else{
+
+            showResult("LOSE...", "#ff4d4d");
+
+        }
+
+        coinAnimation();
+
+    }
+
+
+    // ====================================
+    // 画面表示の更新
+    // ====================================
+
+    $("#coins").html(coins);
+    $("#streak").html(winStreak);
+
+}
+
+
+// ====================================
+// ⑥ ボタンのクリック処理
+// ====================================
+
+// グー
+$("#gu_btn").on("click",function(){
+    playJanken("グー");
+});
+
+// チョキ
+$("#cho_btn").on("click",function(){
+    playJanken("チョキ");
+});
+
+// パー
+$("#par_btn").on("click",function(){
+    playJanken("パー");
+});
+
+
+// ====================================
+// ⑦ RESET機能
+// ====================================
+
+$("#reset_btn").on("click",function(){
+
+    // 変数を初期化
+    coins = 1000;
+    winStreak = 0;
+
+    // 表示を初期化
+    $("#coins").html(coins);
+    $("#streak").html(winStreak);
+
+    $("#pc_hands").html("なに？");
+
+    $("#judgment").stop(true, true).show();
+
+    $("#judgment").html("READY?");
+
+    $("#judgment").css({
+        "color": "#d4af37",
+        "text-shadow": "none"
+    });
+
+    // BET額を初期化
+    $("#bet").val("100");
+
+    // コイン表示を元に戻す
+    $(".coin-box").stop(true, true).css("opacity", 1);
+
+});
+
+</script>
+
+</body>
+</html>
